@@ -168,17 +168,17 @@ def extract_5p(lm):
 # utils for face reconstruction
 def align_img(img, lm, lm3D, mask=None, target_size=224., rescale_factor=102.):
     """
-    Return:
-        transparams        --numpy.array  (raw_W, raw_H, scale, tx, ty)
-        img_new            --PIL.Image  (target_size, target_size, 3)
-        lm_new             --numpy.array  (68, 2), y direction is opposite to v direction
-        mask_new           --PIL.Image  (target_size, target_size)
-    
     Parameters:
         img                --PIL.Image  (raw_H, raw_W, 3)
         lm                 --numpy.array  (68, 2), y direction is opposite to v direction
         lm3D               --numpy.array  (5, 3)
         mask               --PIL.Image  (raw_H, raw_W, 3)
+
+    Return:
+        transparams        --numpy.array  (raw_W, raw_H, scale, tx, ty)
+        img_new            --PIL.Image  (target_size, target_size, 3)
+        lm_new             --numpy.array  (68, 2), y direction is opposite to v direction
+        mask_new           --PIL.Image  (target_size, target_size)
     """
 
     w0, h0 = img.size

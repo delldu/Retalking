@@ -100,17 +100,17 @@ class FaceDetector(object):
 
         return predictions
 
-    @property
-    def reference_scale(self):
-        raise NotImplementedError
+    # @property
+    # def reference_scale(self):
+    #     raise NotImplementedError
 
-    @property
-    def reference_x_shift(self):
-        raise NotImplementedError
+    # @property
+    # def reference_x_shift(self):
+    #     raise NotImplementedError
 
-    @property
-    def reference_y_shift(self):
-        raise NotImplementedError
+    # @property
+    # def reference_y_shift(self):
+    #     raise NotImplementedError
 
     @staticmethod
     def tensor_or_path_to_ndarray(tensor_or_path, rgb=True):

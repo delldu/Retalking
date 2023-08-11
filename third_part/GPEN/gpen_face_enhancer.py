@@ -9,9 +9,17 @@ from face_model.face_gan import FaceGAN
 # from sr_model.real_esrnet import RealESRNet
 from align_faces import warp_and_crop_face, get_reference_facial_points
 from utils.inference_utils import Laplacian_Pyramid_Blending_with_mask
+import pdb
 
 class FaceEnhancement(object):
-    def __init__(self, base_dir='./', size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, device='cuda'):
+    def __init__(self, base_dir='./', size=512, model=None, 
+        use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, device='cuda'):
+        # base_dir = 'checkpoints'
+        # model = 'GPEN-BFR-512'
+        # use_sr = False
+        # sr_model = 'rrdb_realesrnet_psnr'
+
+
         self.facedetector = RetinaFaceDetection(base_dir, device)
         self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow, device=device)
         # self.srmodel =  RealESRNet(base_dir, sr_model, device=device)
@@ -38,6 +46,7 @@ class FaceEnhancement(object):
         outer_padding = (0, 0)
         self.reference_5pts = get_reference_facial_points(
                 (self.size, self.size), inner_padding_factor, outer_padding, default_square)
+        # pdb.set_trace()
 
     def mask_postprocess(self, mask, thres=20):
         mask[:thres, :] = 0; mask[-thres:, :] = 0
@@ -46,8 +55,13 @@ class FaceEnhancement(object):
         mask = cv2.GaussianBlur(mask, (101, 101), 11)
         return mask.astype(np.float32)
     
+    # xxxx1111
     def process(self, img, ori_img, bbox=None, face_enhance=True, possion_blending=False):
-        if self.use_sr:
+        # face_enhance = True
+        # possion_blending = False
+
+
+        if self.use_sr: # False
             img_sr = self.srmodel.process(img)
             if img_sr is not None:
                 img = cv2.resize(img, img_sr.shape[:2][::-1])
@@ -60,7 +74,9 @@ class FaceEnhancement(object):
         full_img = np.zeros(ori_img.shape, dtype=np.uint8)
 
         for i, (faceb, facial5points) in enumerate(zip(facebs, landms)):
-            if faceb[4]<self.threshold: continue
+            if faceb[4]<self.threshold:
+                continue
+
             fh, fw = (faceb[3]-faceb[1]), (faceb[2]-faceb[0])
 
             facial5points = np.reshape(facial5points, (2, 5))
@@ -68,7 +84,7 @@ class FaceEnhancement(object):
             of, tfm_inv = warp_and_crop_face(img, facial5points, reference_pts=self.reference_5pts, crop_size=(self.size, self.size))
 
             # enhance the face
-            if face_enhance:
+            if face_enhance: # True
                 ef = self.facegan.process(of)
             else:
                 ef = of
@@ -81,11 +97,11 @@ class FaceEnhancement(object):
             '''
             0: 'background' 1: 'skin'   2: 'nose'
             3: 'eye_g'  4: 'l_eye'  5: 'r_eye'
-            6: 'l_brow' 7: 'r_brow' 8: 'l_ear'
-            9: 'r_ear'  10: 'mouth' 11: 'u_lip'
-            12: 'l_lip' 13: 'hair'  14: 'hat'
-            15: 'ear_r' 16: 'neck_l'    17: 'neck'
-            18: 'cloth'
+            6: 'l_brow' 7: 'r_brow'
+            8: 'l_ear' 9: 'r_ear'
+            10: 'mouth' 11: 'u_lip'
+            12: 'l_lip'
+            13: 'hair'  14: 'hat'   15: 'ear_r'   16: 'neck_l'   17: 'neck'   18: 'cloth'
             '''
 
             # no ear, no neck, no hair&hat,  only face region
@@ -98,10 +114,10 @@ class FaceEnhancement(object):
             tmp_mask = cv2.warpAffine(tmp_mask, tfm_inv, (width, height), flags=3)
             mask_sharp = cv2.warpAffine(mask_sharp, tfm_inv, (width, height), flags=3)
 
-            if min(fh, fw)<100: # gaussian filter for small faces
+            if min(fh, fw) < 100: # gaussian filter for small faces
                 ef = cv2.filter2D(ef, -1, self.kernel)
             
-            if face_enhance:
+            if face_enhance: # True
                 tmp_img = cv2.warpAffine(ef, tfm_inv, (width, height), flags=3)
             else:
                 tmp_img = cv2.warpAffine(of, tfm_inv, (width, height), flags=3)
@@ -115,10 +131,10 @@ class FaceEnhancement(object):
         full_mask = full_mask[:, :, np.newaxis]
         mask_sharp = mask_sharp[:, :, np.newaxis]
 
-        if self.use_sr and img_sr is not None:
+        if self.use_sr and img_sr is not None: # False
             img = cv2.convertScaleAbs(img_sr*(1-full_mask) + full_img*full_mask)
         
-        elif possion_blending is True:
+        elif possion_blending is True: # False
             if bbox is not None:
                 y1, y2, x1, x2 = bbox
                 mask_bbox = np.zeros_like(mask_sharp)
@@ -135,4 +151,5 @@ class FaceEnhancement(object):
             img = cv2.convertScaleAbs(ori_img*(1-full_mask) + full_img*full_mask)
             img = cv2.convertScaleAbs(ori_img*(1-mask_sharp) + img*mask_sharp)
 
+        #  img.shape -- (256, 256, 3), orig_faces[0].shape -- (512, 512, 3), enhanced_faces[0].shape -- (512, 512, 3)
         return img, orig_faces, enhanced_faces

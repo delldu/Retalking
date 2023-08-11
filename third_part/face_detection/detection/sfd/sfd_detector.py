@@ -46,14 +46,14 @@ class SFDDetector(FaceDetector):
 
         return bboxlists
 
-    @property
-    def reference_scale(self):
-        return 195
+    # @property
+    # def reference_scale(self):
+    #     return 195
 
-    @property
-    def reference_x_shift(self):
-        return 0
+    # @property
+    # def reference_x_shift(self):
+    #     return 0
 
-    @property
-    def reference_y_shift(self):
-        return 0
+    # @property
+    # def reference_y_shift(self):
+    #     return 0

@@ -1,7 +1,7 @@
 import torch
 from .base_model import BaseModel
 from . import model_utils
-
+import pdb
 
 class GANimationModel(BaseModel):
     """docstring for GANimationModel"""
@@ -10,25 +10,21 @@ class GANimationModel(BaseModel):
         self.name = "GANimation"
 
     def initialize(self):
-        # super(GANimationModel, self).initialize(opt)
         self.is_train = False
         self.models_name = []
         self.net_gen = model_utils.define_splitG(3, 17, 64, use_dropout=False, 
                     norm='instance', init_type='normal', init_gain=0.02, gpu_ids=[0])
+        # self.net_gen -- SplitGenerator()
         self.models_name.append('gen')
         self.device = 'cuda'
         
-        # if self.is_train:
-        #     self.net_dis = model_utils.define_splitD(3, 17, self.opt.final_size, self.opt.ndf, 
-        #             norm=self.opt.norm, init_type=self.opt.init_type, init_gain=self.opt.init_gain, gpu_ids=self.gpu_ids)
-        #     self.models_name.append('dis')
-
         # if self.opt.load_epoch > 0:
-        self.load_ckpt('30')
+        self.load_ckpt('30') # checkpoints/30_net_gen.pth
+        # pdb.set_trace()
 
     def setup(self):
         super(GANimationModel, self).setup()
-        if self.is_train:
+        if self.is_train: # False
             # setup optimizer
             self.optim_gen = torch.optim.Adam(self.net_gen.parameters(),
                             lr=self.opt.lr, betas=(self.opt.beta1, 0.999))
@@ -43,17 +39,18 @@ class GANimationModel(BaseModel):
     def feed_batch(self, batch):
         self.src_img = batch['src_img'].to(self.device)
         self.tar_aus = batch['tar_aus'].type(torch.FloatTensor).to(self.device)
-        if self.is_train:
+        if self.is_train: # False
             self.src_aus = batch['src_aus'].type(torch.FloatTensor).to(self.device)
             self.tar_img = batch['tar_img'].to(self.device)
 
+    # xxxx1111
     def forward(self):
         # generate fake image
         self.color_mask ,self.aus_mask, self.embed = self.net_gen(self.src_img, self.tar_aus)
         self.fake_img = self.aus_mask * self.src_img + (1 - self.aus_mask) * self.color_mask
 
         # reconstruct real image
-        if self.is_train:
+        if self.is_train: # False
             self.rec_color_mask, self.rec_aus_mask, self.rec_embed = self.net_gen(self.fake_img, self.src_aus)
             self.rec_real_img = self.rec_aus_mask * self.fake_img + (1 - self.rec_aus_mask) * self.rec_color_mask
 

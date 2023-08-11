@@ -410,10 +410,10 @@ def define_splitG(img_nc, aus_nc, ngf, use_dropout=False, norm='instance', init_
     return init_net(net_img_au, init_type, init_gain, gpu_ids)
 
 
-def define_splitD(input_nc, aus_nc, image_size, ndf, norm='instance', init_type='normal', init_gain=0.02, gpu_ids=[]):
-    norm_layer = get_norm_layer(norm_type=norm)
-    net_dis_aus = SplitDiscriminator(input_nc, aus_nc, image_size, ndf, n_layers=6, norm_layer=norm_layer)
-    return init_net(net_dis_aus, init_type, init_gain, gpu_ids)
+# def define_splitD(input_nc, aus_nc, image_size, ndf, norm='instance', init_type='normal', init_gain=0.02, gpu_ids=[]):
+#     norm_layer = get_norm_layer(norm_type=norm)
+#     net_dis_aus = SplitDiscriminator(input_nc, aus_nc, image_size, ndf, n_layers=6, norm_layer=norm_layer)
+#     return init_net(net_dis_aus, init_type, init_gain, gpu_ids)
 
 
 class SplitGenerator(nn.Module):
@@ -464,12 +464,6 @@ class SplitGenerator(nn.Module):
         au_top += [nn.Conv2d(ngf, 1, kernel_size=7, stride=1, padding=3, bias=False),
                     nn.Sigmoid()]
         self.au_top = nn.Sequential(*au_top)
-
-        # from torchsummary import summary
-        # summary(self.model.to("cuda"), (20, 128, 128))
-        # summary(self.color_top.to("cuda"), (64, 128, 128))
-        # summary(self.au_top.to("cuda"), (64, 128, 128))
-        # assert False
 
     def forward(self, img, au):
         # replicate AUs vector to match image shap and concate to construct input 

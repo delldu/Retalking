@@ -12,7 +12,7 @@ except BaseException:
 
 from .models import FAN, ResNetDepth
 from .utils import *
-
+import pdb
 
 class LandmarksType(Enum):
     """Enum class defining the type of landmarks to detect.
@@ -46,10 +46,14 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 class FaceAlignment:
     def __init__(self, landmarks_type, network_size=NetworkSize.LARGE,
                  device='cuda', flip_input=False, face_detector='sfd', verbose=False):
+        # landmarks_type = <LandmarksType._2D: 1>
+        # network_size = 4
+        # flip_input = False
+        # face_detector = 'sfd'
         self.device = device
-        self.flip_input = flip_input
-        self.landmarks_type = landmarks_type
-        self.verbose = verbose
+        # self.flip_input = flip_input
+        # self.landmarks_type = landmarks_type
+        # self.verbose = verbose
 
         network_size = int(network_size)
 
@@ -60,6 +64,7 @@ class FaceAlignment:
         face_detector_module = __import__('face_detection.detection.' + face_detector,
                                           globals(), locals(), [face_detector], 0)
         self.face_detector = face_detector_module.FaceDetector(device=device, verbose=verbose)
+        # self.face_detector --  <face_detection.detection.sfd.sfd_detector.SFDDetector object>
 
     def get_detections_for_batch(self, images):
         images = images[..., ::-1]

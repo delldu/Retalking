@@ -9,6 +9,7 @@ from torchvision.transforms.functional import normalize
 from gfpgan.archs.gfpgan_bilinear_arch import GFPGANBilinear
 from gfpgan.archs.gfpganv1_arch import GFPGANv1
 from gfpgan.archs.gfpganv1_clean_arch import GFPGANv1Clean
+import pdb
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,14 +30,14 @@ class GFPGANer():
         bg_upsampler (nn.Module): The upsampler for the background. Default: None.
     """
 
-    def __init__(self, model_path, upscale=2, arch='clean', channel_multiplier=2, bg_upsampler=None):
+    def __init__(self, model_path, upscale=1, arch='clean', channel_multiplier=2, bg_upsampler=None):
         self.upscale = upscale
-        self.bg_upsampler = bg_upsampler
+        self.bg_upsampler = bg_upsampler # None
 
         # initialize model
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # initialize the GFP-GAN
-        if arch == 'clean':
+        if arch == 'clean': # True
             self.gfpgan = GFPGANv1Clean(
                 out_size=512,
                 num_style_feat=512,
@@ -48,7 +49,7 @@ class GFPGANer():
                 different_w=True,
                 narrow=1,
                 sft_half=True)
-        elif arch == 'bilinear':
+        elif arch == 'bilinear': # False
             self.gfpgan = GFPGANBilinear(
                 out_size=512,
                 num_style_feat=512,
@@ -60,7 +61,7 @@ class GFPGANer():
                 different_w=True,
                 narrow=1,
                 sft_half=True)
-        elif arch == 'original':
+        elif arch == 'original': # False
             self.gfpgan = GFPGANv1(
                 out_size=512,
                 num_style_feat=512,
@@ -74,7 +75,7 @@ class GFPGANer():
                 sft_half=True)
         # initialize face helper
         self.face_helper = FaceRestoreHelper(
-            upscale,
+            upscale, # 1
             face_size=512,
             crop_ratio=(1, 1),
             det_model='retinaface_resnet50',
@@ -85,7 +86,8 @@ class GFPGANer():
             model_path = load_file_from_url(
                 url=model_path, model_dir=os.path.join(ROOT_DIR, 'gfpgan/weights'), progress=True, file_name=None)
         loadnet = torch.load(model_path)
-        if 'params_ema' in loadnet:
+        # model_path -- 'checkpoints/GFPGANv1.3.pth'
+        if 'params_ema' in loadnet: # True
             keyname = 'params_ema'
         else:
             keyname = 'params'
@@ -93,11 +95,14 @@ class GFPGANer():
         self.gfpgan.eval()
         self.gfpgan = self.gfpgan.to(self.device)
 
+
+    # xxxx1111
     @torch.no_grad()
-    def enhance(self, img, has_aligned=False, only_center_face=False, paste_back=True):
+    def enhance(self, img, has_aligned=False, only_center_face=True, paste_back=True):
+
         self.face_helper.clean_all()
 
-        if has_aligned:  # the inputs are already aligned
+        if has_aligned:  # False, the inputs are already aligned
             img = cv2.resize(img, (512, 512))
             self.face_helper.cropped_faces = [img]
         else:
@@ -127,9 +132,9 @@ class GFPGANer():
             restored_face = restored_face.astype('uint8')
             self.face_helper.add_restored_face(restored_face)
 
-        if not has_aligned and paste_back:
+        if not has_aligned and paste_back: # True
             # upsample the background
-            if self.bg_upsampler is not None:
+            if self.bg_upsampler is not None: # False
                 # Now only support RealESRGAN for upsampling background
                 bg_img = self.bg_upsampler.enhance(img, outscale=self.upscale)[0]
             else:
@@ -138,6 +143,8 @@ class GFPGANer():
             self.face_helper.get_inverse_affine(None)
             # paste each restored face to the input image
             restored_img = self.face_helper.paste_faces_to_input_image(upsample_img=bg_img)
+
             return self.face_helper.cropped_faces, self.face_helper.restored_faces, restored_img
         else:
+            pdb.set_trace()
             return self.face_helper.cropped_faces, self.face_helper.restored_faces, None

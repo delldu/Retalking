@@ -10,21 +10,27 @@ from tqdm import tqdm
 from itertools import cycle
 
 from torch.multiprocessing import Pool, Process, set_start_method
+import pdb
 
 class KeypointExtractor():
     def __init__(self):
         self.detector = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D)   
 
     def extract_keypoint(self, images, name=None, info=True):
-        if isinstance(images, list):
+        # (Pdb) len(images) -- 109
+        # (Pdb) images[0] -- <PIL.Image.Image image mode=RGB size=256x256>
+        # name = 'temp/1.mp4x12_landmarks.txt'
+        # info = True
+
+        if isinstance(images, list): # True
             keypoints = []
-            if info:
+            if info: # True
                 i_range = tqdm(images,desc='landmark Det:')
             else:
                 i_range = images
 
             for image in i_range:
-                current_kp = self.extract_keypoint(image)
+                current_kp = self.extract_keypoint(image) # !!! Re...Call !!! 
                 if np.mean(current_kp) == -1 and keypoints:
                     keypoints.append(keypoints[-1])
                 else:

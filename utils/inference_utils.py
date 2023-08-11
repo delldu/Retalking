@@ -8,7 +8,7 @@ from PIL import Image
 from scipy.spatial import ConvexHull
 from third_part import face_detection
 from third_part.face3d.models import networks
-
+import pdb
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -138,7 +138,8 @@ def face_detect(images, args, jaw_correction=False, detector=None):
         results.append([x1, y1, x2, y2])
 
     boxes = np.array(results)
-    if not args.nosmooth: boxes = get_smoothened_boxes(boxes, T=5)
+    if not args.nosmooth: # True
+        boxes = get_smoothened_boxes(boxes, T=5)
     results = [[image[y1: y2, x1:x2], (y1, y2, x1, x2)] for image, (x1, y1, x2, y2) in zip(images, boxes)]
 
     del detector
@@ -149,8 +150,7 @@ def _load(checkpoint_path, device):
     if device == 'cuda':
         checkpoint = torch.load(checkpoint_path)
     else:
-        checkpoint = torch.load(checkpoint_path,
-                                map_location=lambda storage, loc: storage)
+        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
     return checkpoint
 
 def split_coeff(coeffs):
@@ -222,27 +222,28 @@ def Laplacian_Pyramid_Blending_with_mask(A, B, m, num_levels = 6):
 def load_model(args, device):
     D_Net = load_DNet(args).to(device)
     model = load_network(args).to(device)
+    # pdb.set_trace()
     return D_Net, model
 
-def normalize_kp(kp_source, kp_driving, kp_driving_initial, adapt_movement_scale=False,
-                 use_relative_movement=False, use_relative_jacobian=False):
-    if adapt_movement_scale:
-        source_area = ConvexHull(kp_source['value'][0].data.cpu().numpy()).volume
-        driving_area = ConvexHull(kp_driving_initial['value'][0].data.cpu().numpy()).volume
-        adapt_movement_scale = np.sqrt(source_area) / np.sqrt(driving_area)
-    else:
-        adapt_movement_scale = 1
+# def normalize_kp(kp_source, kp_driving, kp_driving_initial, adapt_movement_scale=False,
+#                  use_relative_movement=False, use_relative_jacobian=False):
+#     if adapt_movement_scale:
+#         source_area = ConvexHull(kp_source['value'][0].data.cpu().numpy()).volume
+#         driving_area = ConvexHull(kp_driving_initial['value'][0].data.cpu().numpy()).volume
+#         adapt_movement_scale = np.sqrt(source_area) / np.sqrt(driving_area)
+#     else:
+#         adapt_movement_scale = 1
 
-    kp_new = {k: v for k, v in kp_driving.items()}
-    if use_relative_movement:
-        kp_value_diff = (kp_driving['value'] - kp_driving_initial['value'])
-        kp_value_diff *= adapt_movement_scale
-        kp_new['value'] = kp_value_diff + kp_source['value']
+#     kp_new = {k: v for k, v in kp_driving.items()}
+#     if use_relative_movement:
+#         kp_value_diff = (kp_driving['value'] - kp_driving_initial['value'])
+#         kp_value_diff *= adapt_movement_scale
+#         kp_new['value'] = kp_value_diff + kp_source['value']
 
-        if use_relative_jacobian:
-            jacobian_diff = torch.matmul(kp_driving['jacobian'], torch.inverse(kp_driving_initial['jacobian']))
-            kp_new['jacobian'] = torch.matmul(jacobian_diff, kp_source['jacobian'])
-    return kp_new
+#         if use_relative_jacobian:
+#             jacobian_diff = torch.matmul(kp_driving['jacobian'], torch.inverse(kp_driving_initial['jacobian']))
+#             kp_new['jacobian'] = torch.matmul(jacobian_diff, kp_source['jacobian'])
+#     return kp_new
 
 def load_face3d_net(ckpt_path, device):
     net_recon = networks.define_net_recon(net_recon='resnet50', use_last_fc=False, init_path='').to(device)

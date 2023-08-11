@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 from torch.nn import functional as F
 import numpy as np
+import pdb
 
 class NormLayer(nn.Module):
     """Normalization Layers.
@@ -22,20 +23,22 @@ class NormLayer(nn.Module):
             self.norm = nn.InstanceNorm2d(channels, affine=False)
         elif norm_type == 'gn':
             self.norm = nn.GroupNorm(32, channels, affine=True)
-        elif norm_type == 'pixel':
-            self.norm = lambda x: F.normalize(x, p=2, dim=1)
+        # elif norm_type == 'pixel':
+        #     self.norm = lambda x: F.normalize(x, p=2, dim=1)
         elif norm_type == 'layer':
             self.norm = nn.LayerNorm(normalize_shape)
         elif norm_type == 'none':
-            self.norm = lambda x: x*1.0
+            # self.norm = lambda x: x*1.0
+            self.norm = nn.Identity() # for torch.jit.script
         else:
             assert 1==0, 'Norm type {} not support.'.format(norm_type)
 
     def forward(self, x, ref=None):
-        if self.norm_type == 'spade':
-            return self.norm(x, ref)
-        else:
-            return self.norm(x)
+        # if self.norm_type == 'spade':
+        #     return self.norm(x, ref)
+        # else:
+        #     return self.norm(x)
+        return self.norm(x)
 
 
 class ReluLayer(nn.Module):
@@ -61,27 +64,33 @@ class ReluLayer(nn.Module):
         elif relu_type == 'selu':
             self.func = nn.SELU(True)
         elif relu_type == 'none':
-            self.func = lambda x: x*1.0
+            # self.func = lambda x: x*1.0
+            self.func = nn.Identity() # for torch.jit.script            
         else:
             assert 1==0, 'Relu type {} not support.'.format(relu_type)
+        # pdb.set_trace()
 
     def forward(self, x):
-        return self.func(x)
+        return self.func(x) # xxxx8888, torch.jit.script()
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, scale='none', norm_type='none', relu_type='none', use_pad=True, bias=True):
+    def __init__(self, in_channels, out_channels, kernel_size=3, scale='none', norm_type='none', 
+        relu_type='none', bias=True):
         super(ConvLayer, self).__init__()
-        self.use_pad = use_pad
+
         self.norm_type = norm_type
         if norm_type in ['bn']:
             bias = False
         
         stride = 2 if scale == 'down' else 1
 
-        self.scale_func = lambda x: x
+        # self.scale_func = lambda x: x
+        self.scale_func = nn.Identity() #  for torch.jit.script
+        self.use_up = False
         if scale == 'up':
-            self.scale_func = lambda x: nn.functional.interpolate(x, scale_factor=2, mode='nearest')
+            self.use_up = True
+            # self.scale_func = lambda x: nn.functional.interpolate(x, scale_factor=2.0, mode='nearest')
 
         self.reflection_pad = nn.ReflectionPad2d(int(np.ceil((kernel_size - 1.)/2))) 
         self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride, bias=bias)
@@ -89,10 +98,14 @@ class ConvLayer(nn.Module):
         self.relu = ReluLayer(out_channels, relu_type)
         self.norm = NormLayer(out_channels, norm_type=norm_type)
 
+        # pdb.set_trace()
+        # torch.jit.script(self) ==> error !!!, xxxx8888
+
     def forward(self, x):
-        out = self.scale_func(x)
-        if self.use_pad:
-            out = self.reflection_pad(out)
+        out = x
+        if self.use_up:
+            out = F.interpolate(out, scale_factor=2.0, mode='nearest')
+        out = self.reflection_pad(out)
         out = self.conv2d(out)
         out = self.norm(out)
         out = self.relu(out)
@@ -105,9 +118,9 @@ class ResidualBlock(nn.Module):
     """
     def __init__(self, c_in, c_out, relu_type='prelu', norm_type='bn', scale='none'):
         super(ResidualBlock, self).__init__()
-
         if scale == 'none' and c_in == c_out:
-            self.shortcut_func = lambda x: x
+            # self.shortcut_func = lambda x: x
+            self.shortcut_func = nn.Identity() # for torch.jit.script
         else:
             self.shortcut_func = ConvLayer(c_in, c_out, 3, scale)
         
